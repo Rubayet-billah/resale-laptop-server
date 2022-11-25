@@ -19,10 +19,17 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 const usersCollection = client.db('resaleShop').collection('users');
 const categoriesCollection = client.db('resaleShop').collection('categories')
 const productsCollection = client.db('resaleShop').collection('products')
+const bookingsCollection = client.db('resaleShop').collection('bookings')
 
 async function run() {
     try {
         // users api
+        app.get('/users/role/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send(user)
+        })
         app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user);
@@ -45,6 +52,12 @@ async function run() {
             const query = { categoryId: id }
             const product = await productsCollection.find(query).toArray();
             res.send(product)
+        })
+        // bookings api
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            const result = await bookingsCollection.insertOne(booking);
+            res.send(result);
         })
     } catch (error) {
         console.log(error)
