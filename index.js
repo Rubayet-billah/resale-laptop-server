@@ -30,9 +30,15 @@ async function run() {
             const user = await usersCollection.findOne(query);
             res.send(user)
         })
+        app.get('/users/verified', async (req, res) => {
+            const email = req.query.email;
+            console.log(email)
+            const query = { email: email };
+            const result = await usersCollection.findOne(query);
+            res.send(result)
+        })
         app.get('/users', async (req, res) => {
             const role = req.query.role;
-            console.log(role)
             const query = { role: role };
             const customers = await usersCollection.find(query).toArray();
             res.send(customers)
@@ -40,6 +46,21 @@ async function run() {
         app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user);
+            res.send(result)
+        })
+        app.patch('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: { verified: true }
+            };
+            const result = await usersCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(filter);
             res.send(result)
         })
         // categories api
