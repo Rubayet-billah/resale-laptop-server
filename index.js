@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
+const stripe = require("stripe")(process.env.STRIPE_SK);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ const usersCollection = client.db('resaleShop').collection('users');
 const categoriesCollection = client.db('resaleShop').collection('categories')
 const productsCollection = client.db('resaleShop').collection('products')
 const bookingsCollection = client.db('resaleShop').collection('bookings')
+const paymentsCollection = client.db('resaleShop').collection('payments')
 
 async function run() {
     try {
@@ -32,7 +34,6 @@ async function run() {
         })
         app.get('/users/verified', async (req, res) => {
             const email = req.query.email;
-            console.log(email)
             const query = { email: email };
             const result = await usersCollection.findOne(query);
             res.send(result)
@@ -63,6 +64,42 @@ async function run() {
             const result = await usersCollection.deleteOne(filter);
             res.send(result)
         })
+
+        // stripe payment 
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+
+            try {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    currency: 'usd',
+                    amount: amount,
+                    'payment_method_types': [
+                        'card'
+                    ]
+                })
+                res.send({
+                    clientSecret: paymentIntent.client_secret
+                })
+            } catch (error) {
+                console.log('errors happend here', error)
+            }
+        })
+
+        // store payment
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const { bookingId, transectionId } = payment;
+            const filter = { _id: ObjectId(bookingId) };
+            const updatedDoc = {
+                $set: { paid: true, transectionId }
+            }
+            const bookingUpdate = await bookingsCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
+
         // categories api
         app.get('/categories', async (req, res) => {
             const query = {};
@@ -107,20 +144,26 @@ async function run() {
             }
             const result = await productsCollection.updateOne(filter, updatedDoc, options);
             res.send(result);
-        })
+        });
         app.delete('/products/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const result = await productsCollection.deleteOne(filter);
             res.send(result)
-        })
+        });
         // bookings api
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const booking = await bookingsCollection.findOne(query);
+            res.send(booking)
+        });
         app.get('/bookings', async (req, res) => {
             const email = req.query.email;
             const query = { email: email };
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings)
-        })
+        });
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
