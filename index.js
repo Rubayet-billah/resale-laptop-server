@@ -12,7 +12,20 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send('Unauthorized access')
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send('forbidden access')
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 
 // database connection
 
@@ -132,8 +145,12 @@ async function run() {
             const product = await productsCollection.find(query).toArray();
             res.send(product)
         })
-        app.get('/myproducts', async (req, res) => {
+        app.get('/myproducts', verifyJWT, async (req, res) => {
             const email = req.query.email;
+            const verifiedEmail = req.decoded.email;
+            if (email != verifiedEmail) {
+                return res.status(403).send({ message: 'Forbidden access' })
+            }
             const query = { email: email };
             const products = await productsCollection.find(query).toArray();
             res.send(products)
@@ -172,8 +189,12 @@ async function run() {
             const booking = await bookingsCollection.findOne(query);
             res.send(booking)
         });
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', verifyJWT, async (req, res) => {
             const email = req.query.email;
+            const verifiedEmail = req.decoded.email;
+            if (email !== verifiedEmail) {
+                return res.status(403).send({ message: 'Forbidden access' })
+            }
             const query = { email: email };
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings)
