@@ -182,6 +182,17 @@ async function run() {
             const result = await productsCollection.deleteOne(filter);
             res.send(result)
         });
+        // reported products api
+        app.patch('/products/reported/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: { reported: req.body.reported }
+            }
+            const result = await productsCollection.updateOne(filter, updatedDoc);
+            res.send(result)
+        })
+
         // bookings api
         app.get('/bookings/:id', async (req, res) => {
             const id = req.params.id;
