@@ -118,12 +118,16 @@ async function run() {
         app.post('/payments', async (req, res) => {
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
-            const { bookingId, transectionId } = payment;
-            const filter = { _id: ObjectId(bookingId) };
+            const { productId, bookingId, transectionId } = payment;
+            // update booking
+            const bookingFilter = { _id: ObjectId(bookingId) };
             const updatedDoc = {
                 $set: { paid: true, transectionId }
             }
-            const bookingUpdate = await bookingsCollection.updateOne(filter, updatedDoc);
+            const bookingUpdate = await bookingsCollection.updateOne(bookingFilter, updatedDoc);
+            // delete product form products collection
+            const productFilter = { _id: ObjectId(productId) };
+            const productDelete = await productsCollection.deleteOne(productFilter);
             res.send(result)
         })
 
@@ -183,7 +187,13 @@ async function run() {
             res.send(result)
         });
         // reported products api
-        app.patch('/products/reported/:id', async (req, res) => {
+        app.get('/reportedproducts', async (req, res) => {
+            const query = { reported: true };
+            const reportedProducts = await productsCollection.find(query).toArray();
+            console.log(reportedProducts)
+            res.send(reportedProducts);
+        })
+        app.patch('/reportedproducts/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const updatedDoc = {
@@ -191,6 +201,12 @@ async function run() {
             }
             const result = await productsCollection.updateOne(filter, updatedDoc);
             res.send(result)
+        })
+        app.delete('/reportedproducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await productsCollection.deleteOne(filter);
+            res.send(result);
         })
 
         // bookings api
@@ -213,6 +229,12 @@ async function run() {
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
+            const productId = booking.productId;
+            const productFilter = { _id: ObjectId(productId) };
+            const updatedDoc = {
+                $set: { status: 'Booked' }
+            }
+            const updateProduct = await productsCollection.updateOne(productFilter, updatedDoc)
             res.send(result);
         })
     } catch (error) {
