@@ -27,6 +27,8 @@ function verifyJWT(req, res, next) {
     })
 }
 
+// find({"status": $ne: "sold"})
+
 // database connection
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bhwsqpg.mongodb.net/?retryWrites=true&w=majority`;
@@ -62,6 +64,10 @@ async function run() {
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const previousUser = await usersCollection.findOne({ email: user.email });
+            if (previousUser) {
+                return res.send({ acknowledged: false })
+            }
             const result = await usersCollection.insertOne(user);
             res.send(result)
         })
@@ -127,7 +133,10 @@ async function run() {
             const bookingUpdate = await bookingsCollection.updateOne(bookingFilter, updatedDoc);
             // delete product form products collection
             const productFilter = { _id: ObjectId(productId) };
-            const productDelete = await productsCollection.deleteOne(productFilter);
+            const productUpdatedDoc = {
+                $set: { status: 'Sold' }
+            }
+            const productUpdate = await productsCollection.updateOne(productFilter, productUpdatedDoc);
             res.send(result)
         })
 
@@ -145,7 +154,7 @@ async function run() {
         // })
         app.get('/products/:id', async (req, res) => {
             const categoryId = req.params.id;
-            const query = { categoryId: categoryId }
+            const query = { categoryId: categoryId, status: { $ne: "Sold" } }
             const product = await productsCollection.find(query).toArray();
             res.send(product)
         })
