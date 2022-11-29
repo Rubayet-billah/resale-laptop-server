@@ -27,7 +27,6 @@ function verifyJWT(req, res, next) {
     })
 }
 
-// find({"status": $ne: "sold"})
 
 // database connection
 
@@ -146,12 +145,6 @@ async function run() {
             const categories = await categoriesCollection.find(query).toArray();
             res.send(categories);
         })
-        // products api
-        // app.get('/products', async (req, res) => {
-        //     const query = {};
-        //     const products = await productsCollection.find(query).toArray();
-        //     res.send(products)
-        // })
         app.get('/products/:id', async (req, res) => {
             const categoryId = req.params.id;
             const query = { categoryId: categoryId, status: { $ne: "Sold" } }
