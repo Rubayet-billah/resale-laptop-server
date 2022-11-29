@@ -162,7 +162,7 @@ async function run() {
             res.send(products)
         })
         app.get('/advertisedproduct', async (req, res) => {
-            const query = { advertised: true };
+            const query = { advertised: true, status: { $ne: "Sold" } };
             const products = await productsCollection.find(query).toArray();
             res.send(products);
 
